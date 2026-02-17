@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist Cafetería</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding-bottom: 180px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E75B6, #1e5a96);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .employee-info {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus, 
+        .form-group select:focus {
+            outline: none;
+            border-color: #2E75B6;
+        }
+
+        .tasks-section {
+            padding: 20px;
+        }
+
+        .category {
+            margin-bottom: 25px;
+        }
+
+        .category-header {
+            background: linear-gradient(135deg, #2E75B6, #1e5a96);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-title {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .category-progress {
+            background: rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 5px 12px;
+            font-weight: 600;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .task-item.completed {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #28a745;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 1em;
+            color: #333;
+        }
+
+        .task-item.completed .task-text {
+            color: #155724;
+            font-weight: 500;
+        }
+
+        .observations {
+            margin: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+        }
+
+        .observations label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .observations textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .summary {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: white;
+            border-top: 3px solid #2E75B6;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .summary-card {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .percentage {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2E75B6;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .floating-save {
+            position: fixed;
+            bottom: 180px;
+            right: 15px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: white;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 999;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 1001;
+            max-width: 90%;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: #28a745;
+        }
+
+        .toast.error {
+            background: #dc3545;
+        }
+
+        @media (min-width: 601px) {
+            .summary {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            
+            .floating-save {
+                right: calc(50% - 300px + 15px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Checklist Cafetería</h1>
+            <p>Control de Tareas Diarias</p>
+        </div>
+
+        <div class="employee-info">
+            <div class="form-group">
+                <label for="employeeName">👤 Empleado *</label>
+                <select id="employeeName" required>
+                    <option value="">Selecciona tu nombre</option>
+                    <option value="Sonia">Sonia</option>
+                    <option value="Marcos">Marcos</option>
+                    <option value="Nieves">Nieves</option>
+                    <option value="Remedios">Remedios</option>
+                    <option value="Patricia">Patricia</option>
+                    <option value="Nohelia">Nohelia</option>
+                    <option value="Andreina">Andreina</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="workDate">📅 Fecha *</label>
+                <input type="date" id="workDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="workShift">⏰ Turno *</label>
+                <select id="workShift" required>
+                    <option value="">Selecciona turno</option>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noche">Noche</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tasks-section" id="tasksContainer"></div>
+
+        <div class="observations">
+            <label for="observations">📝 Observaciones (opcional)</label>
+            <textarea id="observations" placeholder="Escribe aquí cualquier observación..."></textarea>
+        </div>
+
+        <div class="summary">
+            <div class="summary-grid" id="summaryGrid"></div>
+            <button class="submit-btn" onclick="submitChecklist()">
+                📤 Enviar Checklist
+            </button>
+        </div>
+    </div>
+
+    <button class="floating-save" onclick="saveProgress()">💾</button>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const TAREAS = {
+            "Apertura": [
+                "Hornear bolleria",
+                "Preparacion Bocadillos",
+                "Organizar Vitrina y Seco",
+                "Revisar Pc, y Caretera"
+            ],
+            "Limpieza": [
+                "Limpiar Maquina de Zumo",
+                "Barrer Terraza",
+                "Limpiar Vitrina Secos",
+                "Limpiar Vitrina Refrigerados",
+                "Limpirar Cocina"
+            ],
+            "Inventario y Preparacion": [
+                "Reponer Nevera Coca cola",
+                "Reponer Botellero Batidos",
+                "Organizar pan Desayuno",
+                "Organizar bolleria Hornear",
+                "Preparar Desayuno"
+            ]
+        };
+
+        const CATEGORY_EMOJIS = {
+            "Apertura": "🌅",
+            "Limpieza": "🧹",
+            "Inventario y Preparacion": "📦"
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('workDate').valueAsDate = new Date();
+            generateTasks();
+            loadProgress();
+        });
+
+        function generateTasks() {
+            const container = document.getElementById('tasksContainer');
+            const summaryGrid = document.getElementById('summaryGrid');
+            
+            container.innerHTML = '';
+            summaryGrid.innerHTML = '';
+
+            Object.entries(TAREAS).forEach(([categoria, tareas]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                categoryDiv.dataset.category = categoria.toLowerCase().replace(/\s+/g, '-');
+
+                categoryDiv.innerHTML = `
+                    <div class="category-header">
+                        <div class="category-title">${CATEGORY_EMOJIS[categoria]} ${categoria}</div>
+                        <div class="category-progress">0/${tareas.length}</div>
+                    </div>
+                `;
+
+                tareas.forEach((tarea, index) => {
+                    const taskId = `${categoria.toLowerCase().replace(/\s+/g, '-')}-${index}`;
+                    const taskHTML = `
+                        <div class="task-item">
+                            <input type="checkbox" class="task-checkbox" data-task="${taskId}" data-category="${categoria}">
+                            <span class="task-text">${tarea}</span>
+                        </div>
+                    `;
+                    categoryDiv.innerHTML += taskHTML;
+                });
+
+                container.appendChild(categoryDiv);
+
+                const shortName = categoria.length > 12 ? categoria.substring(0, 10) + '.' : categoria;
+                summaryGrid.innerHTML += `
+                    <div class="summary-card">
+                        <h3>${shortName}</h3>
+                        <div class="percentage" id="${categoria.toLowerCase().replace(/\s+/g, '-')}-percent">0%</div>
+                    </div>
+                `;
+            });
+
+            summaryGrid.innerHTML += `
+                <div class="summary-card" style="background: #d4edda;">
+                    <h3>Total</h3>
+                    <div class="percentage" style="color: #28a745;" id="total-percent">0%</div>
+                </div>
+            `;
+
+            document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const taskItem = this.closest('.task-item');
+                    if (this.checked) {
+                        taskItem.classList.add('completed');
+                    } else {
+                        taskItem.classList.remove('completed');
+                    }
+                    updateProgress();
+                    saveProgress();
+                });
+            });
+        }
+
+        function updateProgress() {
+            const categoryCounts = {};
+            
+            Object.keys(TAREAS).forEach(categoria => {
+                categoryCounts[categoria] = { total: TAREAS[categoria].length, completed: 0 };
+            });
+
+            document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                const categoria = checkbox.dataset.category;
+                if (checkbox.checked) {
+                    categoryCounts[categoria].completed++;
+                }
+            });
+
+            let totalCompleted = 0;
+            let totalTasks = 0;
+
+            Object.entries(categoryCounts).forEach(([categoria, counts]) => {
+                const percentage = Math.round((counts.completed / counts.total) * 100);
+                const categoryKey = categoria.toLowerCase().replace(/\s+/g, '-');
+                
+                const categoryDiv = document.querySelector(`[data-category="${categoryKey}"]`);
+                if (categoryDiv) {
+                    categoryDiv.querySelector('.category-progress').textContent = `${counts.completed}/${counts.total}`;
+                }
+
+                const percentElement = document.getElementById(`${categoryKey}-percent`);
+                if (percentElement) {
+                    percentElement.textContent = `${percentage}%`;
+                }
+
+                totalCompleted += counts.completed;
+                totalTasks += counts.total;
+            });
+
+            const totalPercentage = Math.round((totalCompleted / totalTasks) * 100);
+            document.getElementById('total-percent').textContent = `${totalPercentage}%`;
+        }
+
+        function saveProgress() {
+            const data = {
+                employeeName: document.getElementById('employeeName').value,
+                workDate: document.getElementById('workDate').value,
+                workShift: document.getElementById('workShift').value,
+                observations: document.getElementById('observations').value,
+                tasks: {}
+            };
+
+            document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                data.tasks[checkbox.dataset.task] = checkbox.checked;
+            });
+
+            localStorage.setItem('checklistProgress', JSON.stringify(data));
+            showToast('💾 Guardado');
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('checklistProgress');
+            if (saved) {
+                const data = JSON.parse(saved);
+                
+                document.getElementById('employeeName').value = data.employeeName || '';
+                document.getElementById('workDate').value = data.workDate || new Date().toISOString().split('T')[0];
+                document.getElementById('workShift').value = data.workShift || '';
+                document.getElementById('observations').value = data.observations || '';
+
+                setTimeout(() => {
+                    Object.entries(data.tasks || {}).forEach(([taskId, checked]) => {
+                        const checkbox = document.querySelector(`[data-task="${taskId}"]`);
+                        if (checkbox) {
+                            checkbox.checked = checked;
+                            if (checked) {
+                                checkbox.closest('.task-item').classList.add('completed');
+                            }
+                        }
+                    });
+                    updateProgress();
+                }, 100);
+            }
+        }
+
+        function submitChecklist() {
+            const employeeName = document.getElementById('employeeName').value;
+            const workDate = document.getElementById('workDate').value;
+            const workShift = document.getElementById('workShift').value;
+
+            if (!employeeName || !workDate || !workShift) {
+                showToast('⚠️ Completa todos los campos', 'error');
+                return;
+            }
+
+            const checklistData = {
+                empleado: employeeName,
+                fecha: workDate,
+                turno: workShift,
+                observaciones: document.getElementById('observations').value,
+                timestamp: new Date().toISOString(),
+                tareas: {}
+            };
+
+            Object.entries(TAREAS).forEach(([categoria, tareas]) => {
+                checklistData.tareas[categoria] = {
+                    completadas: 0,
+                    total: tareas.length,
+                    porcentaje: 0,
+                    detalles: []
+                };
+
+                document.querySelectorAll(`[data-category="${categoria}"]`).forEach(checkbox => {
+                    const taskText = checkbox.closest('.task-item').querySelector('.task-text').textContent;
+                    checklistData.tareas[categoria].detalles.push({
+                        tarea: taskText,
+                        completada: checkbox.checked
+                    });
+                    if (checkbox.checked) {
+                        checklistData.tareas[categoria].completadas++;
+                    }
+                });
+
+                checklistData.tareas[categoria].porcentaje = Math.round(
+                    (checklistData.tareas[categoria].completadas / checklistData.tareas[categoria].total) * 100
+                );
+            });
+
+            const totalCompletadas = Object.values(checklistData.tareas).reduce((sum, cat) => sum + cat.completadas, 0);
+            const totalTareas = Object.values(checklistData.tareas).reduce((sum, cat) => sum + cat.total, 0);
+            checklistData.porcentajeTotal = Math.round((totalCompletadas / totalTareas) * 100);
+
+            const allChecklists = JSON.parse(localStorage.getItem('allChecklists') || '[]');
+            allChecklists.push(checklistData);
+            localStorage.setItem('allChecklists', JSON.stringify(allChecklists));
+
+            localStorage.removeItem('checklistProgress');
+            
+            showToast('✅ Checklist enviado', 'success');
+            
+            setTimeout(() => {
+                if (confirm('¿Crear nuevo checklist?')) {
+                    location.reload();
+                }
+            }, 2000);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        ['employeeName', 'workDate', 'workShift', 'observations'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', saveProgress);
+                el.addEventListener('change', saveProgress);
+            }
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            const hasData = document.querySelectorAll('.task-checkbox:checked').length > 0 ||
+                           document.getElementById('employeeName').value;
+            if (hasData) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
