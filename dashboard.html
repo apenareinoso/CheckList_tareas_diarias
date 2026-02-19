@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Supervisor - Cafetería</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E75B6, #1e5a96);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* FILTRO GLOBAL DE FECHAS */
+        .global-filter {
+            background: #e8f4fd;
+            border-bottom: 2px solid #2E75B6;
+            padding: 15px 20px;
+        }
+
+        .global-filter-title {
+            font-weight: 700;
+            color: #2E75B6;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .filter-group label {
+            font-size: 0.82em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #b8d8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .filter-group input:focus {
+            outline: none;
+            border-color: #2E75B6;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2E75B6, #1e5a96);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover { opacity: 0.9; }
+
+        .filter-info {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* TABS */
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            flex: 1;
+            min-width: 80px;
+            padding: 14px 10px;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #2E75B6;
+            border-bottom: 3px solid #2E75B6;
+        }
+
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+
+        /* STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-card h3 { font-size: 0.9em; opacity: 0.9; }
+
+        /* TABLAS */
+        .data-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            background: #2E75B6;
+            color: white;
+            padding: 14px 20px;
+            font-weight: 600;
+        }
+
+        .record-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .employee-name { font-weight: 600; font-size: 1.05em; color: #2E75B6; }
+        .record-meta { color: #666; font-size: 0.88em; }
+
+        .task-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .category-stat {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .category-stat .label { font-size: 0.8em; color: #666; margin-bottom: 4px; }
+        .category-stat .value { font-size: 1.1em; font-weight: bold; color: #2E75B6; }
+
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+
+        /* RANKING */
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .rank-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            color: white;
+            font-size: 0.95em;
+            flex-shrink: 0;
+        }
+
+        .rank-1 { background: #ffd700; color: #333; }
+        .rank-2 { background: #c0c0c0; color: #333; }
+        .rank-3 { background: #cd7f32; }
+        .rank-other { background: #6c757d; }
+        .rank-info { flex: 1; }
+        .rank-name { font-weight: 600; font-size: 1.05em; margin-bottom: 4px; }
+        .rank-stats { color: #666; font-size: 0.88em; }
+
+        /* TABLA DE CONTEO POR USUARIO */
+        .user-task-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+        }
+
+        .user-task-table th {
+            background: #2E75B6;
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .user-task-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .user-task-table tr:hover { background: #f0f7ff; }
+
+        .user-task-table tr.group-header td {
+            background: #e8f4fd;
+            font-weight: 700;
+            color: #1e5a96;
+            font-size: 0.95em;
+        }
+
+        .count-badge {
+            display: inline-block;
+            background: #2E75B6;
+            color: white;
+            border-radius: 12px;
+            padding: 3px 10px;
+            font-weight: 700;
+            font-size: 0.9em;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .count-badge.high { background: #28a745; }
+        .count-badge.mid { background: #ffc107; color: #333; }
+        .count-badge.low { background: #dc3545; }
+
+        .table-scroll { overflow-x: auto; }
+
+        /* EXPORT */
+        .export-section {
+            background: #f0f7ff;
+            border: 2px solid #b8d8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .export-section h3 { color: #2E75B6; margin-bottom: 15px; }
+
+        .export-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95em;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .export-btn:hover { opacity: 0.9; }
+
+        .preview-item {
+            padding: 10px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 0.88em;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .container { border-radius: 0; min-height: 100vh; }
+            .filter-controls { flex-direction: column; }
+            .filter-group { min-width: 100%; }
+            .filter-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>📊 Dashboard Supervisor</h1>
+        <p>Control y análisis de desempeño - Cafetería</p>
+    </div>
+
+    <!-- FILTRO GLOBAL DE FECHAS -->
+    <div class="global-filter">
+        <div class="global-filter-title">🗓️ Filtro de Fechas (aplica a todas las pestañas)</div>
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label for="globalStart">Fecha Inicio</label>
+                <input type="date" id="globalStart">
+            </div>
+            <div class="filter-group">
+                <label for="globalEnd">Fecha Fin</label>
+                <input type="date" id="globalEnd">
+            </div>
+            <button class="filter-btn" onclick="applyFilter()">🔍 Aplicar Filtro</button>
+        </div>
+        <div class="filter-info" id="filterInfo">Mostrando todos los registros</div>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('overview', this)">📈 Resumen</button>
+        <button class="nav-tab" onclick="showTab('conteo', this)">📋 Conteo</button>
+        <button class="nav-tab" onclick="showTab('export', this)">📥 Exportar</button>
+        <button class="nav-tab" onclick="showTab('daily', this)">📅 Registros</button>
+        <button class="nav-tab" onclick="showTab('ranking', this)">🏆 Ranking</button>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="tab-content active" id="overview">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Promedio General</h3>
+                <div class="value" id="overallAverage">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Registros</h3>
+                <div class="value" id="totalRecords">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Esta Semana</h3>
+                <div class="value" id="weekRecords">0</div>
+            </div>
+        </div>
+        <div class="data-table">
+            <div class="table-header">📋 Últimos 10 Registros (en rango seleccionado)</div>
+            <div id="recentRecords">
+                <div class="empty-state"><h3>No hay registros disponibles</h3></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTEO POR USUARIO Y TAREA -->
+    <div class="tab-content" id="conteo">
+        <div class="data-table">
+            <div class="table-header">📋 Conteo de Tareas por Empleado</div>
+            <div class="table-scroll">
+                <div id="conteoTabla">
+                    <div class="empty-state"><p>Aplica un rango de fechas y haz clic en "Aplicar Filtro"</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORTAR -->
+    <div class="tab-content" id="export">
+        <div class="export-section">
+            <h3>📥 Exportar Datos a Excel</h3>
+            <p style="color:#555; font-size:0.9em; margin-bottom:10px;">
+                Se usará el rango de fechas del filtro global. El archivo se llamará:<br>
+                <strong id="previewFileName">Checklist_FECHA-INICIO_FECHA-FIN.xlsx</strong>
+            </p>
+            <button class="export-btn" onclick="exportToExcel()">📊 Descargar Excel</button>
+        </div>
+        <div class="data-table">
+            <div class="table-header">Vista Previa</div>
+            <div id="exportPreview">
+                <div class="empty-state"><p>Aplica un rango de fechas arriba para ver la vista previa</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTROS -->
+    <div class="tab-content" id="daily">
+        <div class="data-table">
+            <div class="table-header">📊 Registros en el rango seleccionado</div>
+            <div id="allRecords">
+                <div class="empty-state"><h3>No hay registros disponibles</h3></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RANKING -->
+    <div class="tab-content" id="ranking">
+        <div class="data-table">
+            <div class="table-header">🏆 Ranking de Empleados</div>
+            <div id="employeeRanking">
+                <div class="empty-state"><h3>Ranking no disponible</h3></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ─── INIT ────────────────────────────────────────────────
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('globalStart').valueAsDate = firstDay;
+    document.getElementById('globalEnd').valueAsDate = today;
+
+    let filteredData = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        applyFilter();
+    });
+
+    // ─── FILTRO GLOBAL ───────────────────────────────────────
+    function applyFilter() {
+        const startDate = document.getElementById('globalStart').value;
+        const endDate   = document.getElementById('globalEnd').value;
+        const allData   = JSON.parse(localStorage.getItem('allChecklists') || '[]');
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end   = new Date(endDate);
+            filteredData = allData.filter(item => {
+                const d = new Date(item.fecha);
+                return d >= start && d <= end;
+            });
+            document.getElementById('filterInfo').textContent =
+                `Mostrando ${filteredData.length} registros del ${startDate} al ${endDate}`;
+
+            // Actualizar nombre de archivo
+            document.getElementById('previewFileName').textContent =
+                `Checklist_${startDate}_${endDate}.xlsx`;
+        } else {
+            filteredData = [...allData];
+            document.getElementById('filterInfo').textContent =
+                `Mostrando todos los registros (${filteredData.length})`;
+        }
+
+        // Recargar pestaña activa
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab) loadTab(activeTab.id);
+    }
+
+    // ─── TABS ────────────────────────────────────────────────
+    function showTab(tabName, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        if (btn) btn.classList.add('active');
+        loadTab(tabName);
+    }
+
+    function loadTab(tabName) {
+        if (tabName === 'overview') renderOverview();
+        else if (tabName === 'conteo')  renderConteo();
+        else if (tabName === 'export')  renderExportPreview();
+        else if (tabName === 'daily')   renderDaily();
+        else if (tabName === 'ranking') renderRanking();
+    }
+
+    // ─── RESUMEN ─────────────────────────────────────────────
+    function renderOverview() {
+        const data = filteredData;
+        document.getElementById('totalRecords').textContent = data.length;
+
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const weekData = data.filter(item => new Date(item.fecha) >= oneWeekAgo);
+        document.getElementById('weekRecords').textContent = weekData.length;
+
+        if (data.length === 0) {
+            document.getElementById('overallAverage').textContent = '0%';
+            document.getElementById('recentRecords').innerHTML =
+                '<div class="empty-state"><h3>No hay registros en este período</h3></div>';
+            return;
+        }
+
+        const avg = data.reduce((s, i) => s + i.porcentajeTotal, 0) / data.length;
+        document.getElementById('overallAverage').textContent = Math.round(avg) + '%';
+
+        const html = data.slice(-10).reverse().map(item => `
+            <div class="record-item">
+                <div class="record-header">
+                    <div class="employee-name">${item.empleado}</div>
+                    <div class="record-meta">📅 ${item.fecha} — ${item.turno}</div>
+                </div>
+                <div class="task-categories">
+                    ${Object.entries(item.tareas).map(([cat, d]) => `
+                        <div class="category-stat">
+                            <div class="label">${cat}</div>
+                            <div class="value">${d.porcentaje}%</div>
+                        </div>`).join('')}
+                    <div class="category-stat" style="background:#e3f2fd;">
+                        <div class="label">Total</div>
+                        <div class="value" style="color:#1565c0;font-size:1.3em;">${item.porcentajeTotal}%</div>
+                    </div>
+                </div>
+                ${item.observaciones ? `<div style="margin-top:10px;padding:10px;background:#fff3cd;border-radius:5px;font-size:0.88em;">📝 ${item.observaciones}</div>` : ''}
+            </div>`).join('');
+
+        document.getElementById('recentRecords').innerHTML = html;
+    }
+
+    // ─── CONTEO POR USUARIO + TAREA ──────────────────────────
+    function renderConteo() {
+        const data = filteredData;
+
+        if (data.length === 0) {
+            document.getElementById('conteoTabla').innerHTML =
+                '<div class="empty-state"><p>No hay registros en el período seleccionado</p></div>';
+            return;
+        }
+
+        // Estructura: { empleado: { "Categoria||Tarea": { realizadas, total } } }
+        const conteo = {};
+
+        data.forEach(item => {
+            if (!conteo[item.empleado]) conteo[item.empleado] = {};
+
+            Object.entries(item.tareas).forEach(([categoria, datos]) => {
+                datos.detalles.forEach(detalle => {
+                    const key = `${categoria}||${detalle.tarea.trim()}`;
+                    if (!conteo[item.empleado][key]) {
+                        conteo[item.empleado][key] = { categoria, tarea: detalle.tarea.trim(), realizadas: 0, evaluadas: 0 };
+                    }
+                    conteo[item.empleado][key].evaluadas++;
+                    if (detalle.completada) conteo[item.empleado][key].realizadas++;
+                });
+            });
+        });
+
+        // Construir tabla HTML
+        let html = `
+            <table class="user-task-table">
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Categoría</th>
+                        <th>Tarea</th>
+                        <th style="text-align:center;">Veces Realizadas</th>
+                        <th style="text-align:center;">Veces Evaluada</th>
+                        <th style="text-align:center;">% Cumplimiento</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        const empleados = Object.keys(conteo).sort();
+
+        empleados.forEach(empleado => {
+            const tareas = Object.values(conteo[empleado]);
+            const totalRealizadas = tareas.reduce((s, t) => s + t.realizadas, 0);
+            const totalEvaluadas  = tareas.reduce((s, t) => s + t.evaluadas,  0);
+            const pctGlobal = totalEvaluadas > 0 ? Math.round((totalRealizadas / totalEvaluadas) * 100) : 0;
+
+            // Fila cabecera del empleado
+            html += `
+                <tr class="group-header">
+                    <td colspan="3">👤 ${empleado}</td>
+                    <td style="text-align:center;">${totalRealizadas} / ${totalEvaluadas}</td>
+                    <td></td>
+                    <td style="text-align:center;">
+                        <span class="count-badge ${pctGlobal>=80?'high':pctGlobal>=50?'mid':'low'}">${pctGlobal}%</span>
+                    </td>
+                </tr>`;
+
+            // Ordenar tareas por categoría
+            tareas.sort((a,b) => a.categoria.localeCompare(b.categoria) || a.tarea.localeCompare(b.tarea));
+
+            tareas.forEach(t => {
+                const pct = t.evaluadas > 0 ? Math.round((t.realizadas / t.evaluadas) * 100) : 0;
+                const badgeClass = pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low';
+                html += `
+                    <tr>
+                        <td style="color:#999;font-size:0.82em;padding-left:20px;"></td>
+                        <td style="color:#555;font-size:0.88em;">${t.categoria}</td>
+                        <td>${t.tarea}</td>
+                        <td style="text-align:center;">
+                            <span class="count-badge">${t.realizadas}</span>
+                        </td>
+                        <td style="text-align:center;color:#777;">${t.evaluadas}</td>
+                        <td style="text-align:center;">
+                            <span class="count-badge ${badgeClass}">${pct}%</span>
+                        </td>
+                    </tr>`;
+            });
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('conteoTabla').innerHTML = html;
+    }
+
+    // ─── PREVIEW EXPORTACIÓN ─────────────────────────────────
+    function renderExportPreview() {
+        const data = filteredData;
+        const startDate = document.getElementById('globalStart').value;
+        const endDate   = document.getElementById('globalEnd').value;
+
+        document.getElementById('previewFileName').textContent =
+            startDate && endDate ? `Checklist_${startDate}_${endDate}.xlsx` : 'Checklist_INICIO_FIN.xlsx';
+
+        if (data.length === 0) {
+            document.getElementById('exportPreview').innerHTML =
+                '<div class="empty-state"><p>No hay registros en el rango seleccionado</p></div>';
+            return;
+        }
+
+        const preview = data.slice(0, 5).map(item => `
+            <div class="preview-item">
+                <strong>${item.empleado}</strong> — ${item.fecha} (${item.turno}) — ${item.porcentajeTotal}%
+            </div>`).join('');
+
+        document.getElementById('exportPreview').innerHTML = `
+            <div style="padding:20px;">
+                <p style="font-weight:600;margin-bottom:12px;">
+                    📦 Se exportarán <strong>${data.length} registros</strong> del período ${startDate} al ${endDate}
+                </p>
+                <p style="font-size:0.85em;color:#555;margin-bottom:12px;">El Excel incluirá 5 hojas:</p>
+                <ul style="font-size:0.85em;color:#555;margin-left:20px;margin-bottom:15px;line-height:1.8;">
+                    <li><strong>Detalle Completo</strong>: una fila por cada tarea</li>
+                    <li><strong>Conteo por Empleado</strong>: veces que cada usuario completó cada tarea</li>
+                    <li><strong>Resumen por Fecha</strong>: un registro por checklist</li>
+                    <li><strong>Resumen por Empleado</strong>: promedios generales</li>
+                    <li><strong>Análisis de Tareas</strong>: tareas con menor cumplimiento</li>
+                </ul>
+                ${preview}
+                ${data.length > 5 ? `<p style="color:#999;font-style:italic;font-size:0.85em;">... y ${data.length-5} registros más</p>` : ''}
+            </div>`;
+    }
+
+    // ─── REGISTROS ───────────────────────────────────────────
+    function renderDaily() {
+        const data = filteredData;
+        if (data.length === 0) {
+            document.getElementById('allRecords').innerHTML =
+                '<div class="empty-state"><h3>No hay registros en este período</h3></div>';
+            return;
+        }
+
+        const html = data.map(item => `
+            <div class="record-item">
+                <div class="record-header">
+                    <div class="employee-name">${item.empleado}</div>
+                    <div class="record-meta">📅 ${item.fecha} — ${item.turno}</div>
+                </div>
+                <div class="task-categories">
+                    ${Object.entries(item.tareas).map(([cat, d]) => `
+                        <div class="category-stat">
+                            <div class="label">${cat}</div>
+                            <div class="value">${d.completadas}/${d.total} (${d.porcentaje}%)</div>
+                        </div>`).join('')}
+                    <div class="category-stat" style="background:#e3f2fd;">
+                        <div class="label">Total</div>
+                        <div class="value" style="color:#1565c0;font-size:1.3em;">${item.porcentajeTotal}%</div>
+                    </div>
+                </div>
+                ${item.observaciones ? `<div style="margin-top:10px;padding:10px;background:#fff3cd;border-radius:5px;font-size:0.88em;">📝 ${item.observaciones}</div>` : ''}
+            </div>`).join('');
+
+        document.getElementById('allRecords').innerHTML = html;
+    }
+
+    // ─── RANKING ─────────────────────────────────────────────
+    function renderRanking() {
+        const data = filteredData;
+        if (data.length === 0) {
+            document.getElementById('employeeRanking').innerHTML =
+                '<div class="empty-state"><h3>No hay registros en este período</h3></div>';
+            return;
+        }
+
+        const stats = {};
+        data.forEach(item => {
+            if (!stats[item.empleado]) stats[item.empleado] = { total: 0, count: 0 };
+            stats[item.empleado].total += item.porcentajeTotal;
+            stats[item.empleado].count++;
+        });
+
+        const ranking = Object.entries(stats)
+            .map(([name, s]) => ({ name, average: Math.round(s.total / s.count), count: s.count }))
+            .sort((a, b) => b.average - a.average);
+
+        const html = ranking.map((emp, i) => `
+            <div class="ranking-item">
+                <div class="rank-badge rank-${i < 3 ? i+1 : 'other'}">${i+1}</div>
+                <div class="rank-info">
+                    <div class="rank-name">${emp.name}</div>
+                    <div class="rank-stats">Promedio: ${emp.average}% • ${emp.count} registros</div>
+                </div>
+            </div>`).join('');
+
+        document.getElementById('employeeRanking').innerHTML = html;
+    }
+
+    // ─── EXPORTAR EXCEL ──────────────────────────────────────
+    function exportToExcel() {
+        const startDate = document.getElementById('globalStart').value;
+        const endDate   = document.getElementById('globalEnd').value;
+        const data = filteredData;
+
+        if (data.length === 0) {
+            alert('No hay registros en el rango de fechas seleccionado');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // ── HOJA 1: DETALLE COMPLETO ──
+        const detalle = [];
+        data.forEach(item => {
+            Object.entries(item.tareas).forEach(([categoria, datos]) => {
+                datos.detalles.forEach(d => {
+                    detalle.push({
+                        'Empleado': item.empleado,
+                        'Fecha': item.fecha,
+                        'Turno': item.turno,
+                        'Categoría': categoria,
+                        'Tarea': d.tarea.trim(),
+                        'Estado': d.completada ? '✅ Completada' : '❌ Pendiente',
+                        'Completada (1=Sí, 0=No)': d.completada ? 1 : 0,
+                        'Hora Registro': new Date(item.timestamp).toLocaleString('es-ES')
+                    });
+                });
+            });
+        });
+        const ws1 = XLSX.utils.json_to_sheet(detalle);
+        ws1['!cols'] = [{wch:15},{wch:12},{wch:10},{wch:25},{wch:35},{wch:15},{wch:20},{wch:20}];
+        XLSX.utils.book_append_sheet(wb, ws1, 'Detalle Completo');
+
+        // ── HOJA 2: CONTEO POR EMPLEADO+TAREA ──
+        const conteoMap = {};
+        data.forEach(item => {
+            if (!conteoMap[item.empleado]) conteoMap[item.empleado] = {};
+            Object.entries(item.tareas).forEach(([categoria, datos]) => {
+                datos.detalles.forEach(d => {
+                    const key = `${categoria}||${d.tarea.trim()}`;
+                    if (!conteoMap[item.empleado][key]) {
+                        conteoMap[item.empleado][key] = { categoria, tarea: d.tarea.trim(), realizadas: 0, evaluadas: 0 };
+                    }
+                    conteoMap[item.empleado][key].evaluadas++;
+                    if (d.completada) conteoMap[item.empleado][key].realizadas++;
+                });
+            });
+        });
+
+        const conteoRows = [];
+        Object.keys(conteoMap).sort().forEach(empleado => {
+            Object.values(conteoMap[empleado])
+                .sort((a,b) => a.categoria.localeCompare(b.categoria) || a.tarea.localeCompare(b.tarea))
+                .forEach(t => {
+                    const pct = t.evaluadas > 0 ? Math.round((t.realizadas / t.evaluadas) * 100) : 0;
+                    conteoRows.push({
+                        'Empleado': empleado,
+                        'Categoría': t.categoria,
+                        'Tarea': t.tarea,
+                        'Veces Realizadas': t.realizadas,
+                        'Veces Evaluada': t.evaluadas,
+                        '% Cumplimiento': pct + '%'
+                    });
+                });
+        });
+        const ws2 = XLSX.utils.json_to_sheet(conteoRows);
+        ws2['!cols'] = [{wch:15},{wch:25},{wch:35},{wch:18},{wch:16},{wch:16}];
+        XLSX.utils.book_append_sheet(wb, ws2, 'Conteo por Empleado');
+
+        // ── HOJA 3: RESUMEN POR FECHA ──
+        const resFechas = data.map(item => {
+            const row = {
+                'Empleado': item.empleado,
+                'Fecha': item.fecha,
+                'Turno': item.turno,
+                '% Total': item.porcentajeTotal
+            };
+            Object.entries(item.tareas).forEach(([cat, d]) => {
+                row[`${cat} - Completadas`] = d.completadas;
+                row[`${cat} - Total`]       = d.total;
+                row[`${cat} - %`]           = d.porcentaje;
+            });
+            row['Observaciones'] = item.observaciones || '';
+            return row;
+        });
+        const ws3 = XLSX.utils.json_to_sheet(resFechas);
+        ws3['!cols'] = [{wch:15},{wch:12},{wch:10},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws3, 'Resumen por Fecha');
+
+        // ── HOJA 4: RESUMEN POR EMPLEADO ──
+        const empStats = {};
+        data.forEach(item => {
+            if (!empStats[item.empleado]) empStats[item.empleado] = { totalReg: 0, suma: 0, porCat: {} };
+            empStats[item.empleado].totalReg++;
+            empStats[item.empleado].suma += item.porcentajeTotal;
+            Object.entries(item.tareas).forEach(([cat, d]) => {
+                if (!empStats[item.empleado].porCat[cat]) empStats[item.empleado].porCat[cat] = { suma:0, n:0 };
+                empStats[item.empleado].porCat[cat].suma += d.porcentaje;
+                empStats[item.empleado].porCat[cat].n++;
+            });
+        });
+        const resEmp = Object.entries(empStats).map(([nombre, s]) => {
+            const row = {
+                'Empleado': nombre,
+                'Total Registros': s.totalReg,
+                'Promedio General': Math.round(s.suma / s.totalReg) + '%'
+            };
+            Object.entries(s.porCat).forEach(([cat, d]) => {
+                row[`Promedio ${cat}`] = Math.round(d.suma / d.n) + '%';
+            });
+            return row;
+        }).sort((a,b) => parseInt(b['Promedio General']) - parseInt(a['Promedio General']));
+        const ws4 = XLSX.utils.json_to_sheet(resEmp);
+        ws4['!cols'] = [{wch:15},{wch:15},{wch:18}];
+        XLSX.utils.book_append_sheet(wb, ws4, 'Resumen por Empleado');
+
+        // ── HOJA 5: ANÁLISIS DE TAREAS ──
+        const analisis = {};
+        data.forEach(item => {
+            Object.entries(item.tareas).forEach(([cat, datos]) => {
+                datos.detalles.forEach(d => {
+                    const key = `${cat}||${d.tarea.trim()}`;
+                    if (!analisis[key]) analisis[key] = { categoria: cat, tarea: d.tarea.trim(), completadas: 0, total: 0 };
+                    analisis[key].total++;
+                    if (d.completada) analisis[key].completadas++;
+                });
+            });
+        });
+        const analisisRows = Object.values(analisis).map(a => ({
+            'Categoría': a.categoria,
+            'Tarea': a.tarea,
+            'Veces Completada': a.completadas,
+            'Veces Evaluada': a.total,
+            '% Cumplimiento': Math.round((a.completadas / a.total) * 100) + '%'
+        })).sort((a,b) => parseInt(a['% Cumplimiento']) - parseInt(b['% Cumplimiento']));
+        const ws5 = XLSX.utils.json_to_sheet(analisisRows);
+        ws5['!cols'] = [{wch:25},{wch:35},{wch:18},{wch:18},{wch:18}];
+        XLSX.utils.book_append_sheet(wb, ws5, 'Análisis de Tareas');
+
+        // ── DESCARGAR ──
+        const fileName = startDate && endDate
+            ? `Checklist_${startDate}_${endDate}.xlsx`
+            : `Checklist_Completo.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
+        alert(`✅ Descargado: ${fileName}\n\n📊 5 hojas incluidas:\n1. Detalle Completo\n2. Conteo por Empleado\n3. Resumen por Fecha\n4. Resumen por Empleado\n5. Análisis de Tareas`);
+    }
+
+    // Autorefresh cada 60s
+    setInterval(() => {
+        applyFilter();
+    }, 60000);
+</script>
+</body>
+</html>
